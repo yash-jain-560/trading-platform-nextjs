@@ -129,6 +129,50 @@ const MarketOverview = ({ marketData, loading }) => {
         </>
     );
 };
+
+// --- Phase 5 Components ---
+
+const formStyle = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    marginTop: '10px',
+};
+
+const inputStyle = {
+    padding: '8px',
+    border: '1px solid #ccc',
+    borderRadius: '4px',
+};
+
+const buttonStyle = {
+    padding: '10px',
+    backgroundColor: '#007bff',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+};
+
+const TradeExecutionForm = () => {
+    // This is purely a mockup, no state or logic needed yet
+    return (
+        <>
+            <h2>Trade Execution</h2>
+            <form style={formStyle} onSubmit={(e) => { e.preventDefault(); alert('Trade submitted (mockup)'); }}>
+                <input type="text" placeholder="Symbol (e.g., AAPL)" style={inputStyle} required />
+                <input type="number" placeholder="Quantity" style={inputStyle} min="1" required />
+                <select style={inputStyle} required defaultValue="">
+                    <option value="" disabled>Select Type</option>
+                    <option value="buy">BUY</option>
+                    <option value="sell">SELL</option>
+                </select>
+                <button type="submit" style={buttonStyle}>Place Order</button>
+            </form>
+            <p style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '10px' }}>* Mockup form - no actual trade placed.</p>
+        </>
+    );
+};
 // -----------------------------
 
 
@@ -172,13 +216,18 @@ const HomePage = () => {
                         <h2>Recent Transactions</h2>
                         <TransactionsList />
                     </div>
+                    
+                    {/* Dashboard Card 5: Trade Execution Form (Phase 5 Implementation) */}
+                    <div style={cardStyle}>
+                        <TradeExecutionForm />
+                    </div>
 
-                    {/* Dashboard Card 3: Market Overview (Phase 4 Implementation) */}
+                    {/* Dashboard Card 3: Market Overview */}
                     <div style={cardStyle}>
                         <MarketOverview marketData={marketData} loading={loading} />
                     </div>
 
-                    {/* Dashboard Card 4: Action/Status (Phase 4 Implementation) */}
+                    {/* Dashboard Card 4: Action/Status */}
                     <div style={cardStyle}>
                         <AppStatus />
                     </div>
