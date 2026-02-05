@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 const containerStyle = {
   minHeight: '100vh',
@@ -42,7 +42,7 @@ const cardStyle = {
     boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
 };
 
-// --- Phase 3 Additions ---
+// --- Phase 3 Components ---
 const mockHoldings = [
     { symbol: 'AAPL', quantity: 10, price: 150.00, value: 1500.00 },
     { symbol: 'GOOGL', quantity: 5, price: 2500.00, value: 12500.00 },
@@ -100,44 +100,92 @@ const TransactionsList = () => (
         ))}
     </ul>
 );
+
+// --- Phase 4 Components ---
+
+const AppStatus = () => (
+    <>
+        <h2>Platform Status</h2>
+        <p>System status: <span style={{ color: 'green', fontWeight: 'bold' }}>Operational</span></p>
+        <p>API status: <a href="/api/status">/api/status</a></p>
+    </>
+);
+
+const MarketOverview = ({ marketData, loading }) => {
+    if (loading) {
+        return <p>Loading market data...</p>;
+    }
+
+    if (!marketData) {
+        return <p>Failed to load market data.</p>;
+    }
+
+    return (
+        <>
+            <h2>Market Overview</h2>
+            <p><strong>S&P 500:</strong> {marketData.sp500.toFixed(2)} ({marketData.sp500Change > 0 ? '+' : ''}{marketData.sp500Change.toFixed(2)}%)</p>
+            <p><strong>NASDAQ:</strong> {marketData.nasdaq.toFixed(2)} ({marketData.nasdaqChange > 0 ? '+' : ''}{marketData.nasdaqChange.toFixed(2)}%)</p>
+            <p><strong>DOW:</strong> {marketData.dow.toFixed(2)} ({marketData.dowChange > 0 ? '+' : ''}{marketData.dowChange.toFixed(2)}%)</p>
+        </>
+    );
+};
 // -----------------------------
 
 
 const HomePage = () => {
-  return (
-    <div style={containerStyle}>
-      <main style={mainStyle}>
-        <h1 style={headerStyle}>Trading Dashboard</h1>
+    const [marketData, setMarketData] = useState(null);
+    const [loading, setLoading] = useState(true);
 
-        <div style={gridStyle}>
-          {/* Dashboard Card 1: Holdings View (Phase 3 Implementation) */}
-          <div style={cardStyle}>
-            <h2>Holdings Summary</h2>
-            <HoldingsTable />
-          </div>
+    useEffect(() => {
+        // Simulate an API call to fetch market data
+        const fetchMarketData = () => {
+            setTimeout(() => {
+                setMarketData({
+                    sp500: 4500.50,
+                    sp500Change: 0.75,
+                    nasdaq: 14000.10,
+                    nasdaqChange: -0.22,
+                    dow: 35000.80,
+                    dowChange: 1.15
+                });
+                setLoading(false);
+            }, 1500); // 1.5 second delay
+        };
 
-          {/* Dashboard Card 2: Transactions View (Phase 3 Implementation) */}
-          <div style={cardStyle}>
-            <h2>Recent Transactions</h2>
-            <TransactionsList />
-          </div>
+        fetchMarketData();
+    }, []);
 
-          {/* Dashboard Card 3: Market Overview (Placeholder) */}
-          <div style={cardStyle}>
-            <h2>Market Overview</h2>
-            <p>Key market indices and performance metrics.</p>
-          </div>
+    return (
+        <div style={containerStyle}>
+            <main style={mainStyle}>
+                <h1 style={headerStyle}>Trading Dashboard</h1>
 
-          {/* Dashboard Card 4: Action/Status */}
-          <div style={cardStyle}>
-            <h2>Platform Status</h2>
-            <p>System status: <span style={{ color: 'green', fontWeight: 'bold' }}>Operational</span></p>
-            <p>Check API: <a href="/api/status">/api/status</a></p>
-          </div>
+                <div style={gridStyle}>
+                    {/* Dashboard Card 1: Holdings View */}
+                    <div style={cardStyle}>
+                        <h2>Holdings Summary</h2>
+                        <HoldingsTable />
+                    </div>
+
+                    {/* Dashboard Card 2: Transactions View */}
+                    <div style={cardStyle}>
+                        <h2>Recent Transactions</h2>
+                        <TransactionsList />
+                    </div>
+
+                    {/* Dashboard Card 3: Market Overview (Phase 4 Implementation) */}
+                    <div style={cardStyle}>
+                        <MarketOverview marketData={marketData} loading={loading} />
+                    </div>
+
+                    {/* Dashboard Card 4: Action/Status (Phase 4 Implementation) */}
+                    <div style={cardStyle}>
+                        <AppStatus />
+                    </div>
+                </div>
+            </main>
         </div>
-      </main>
-    </div>
-  );
+    );
 };
 
 export default HomePage;
