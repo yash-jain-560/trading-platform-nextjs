@@ -78,4 +78,35 @@ def get_portfolio_status():
 if __name__ == '__main__':
     # Test function
     status = get_portfolio_status()
-    print(json.dumps(status, indent=4))
+def execute_trade(symbol, quantity, trade_type):
+    """
+    MOCK implementation for executing a trade.
+    In a real system, this would interact with a brokerage API and update a database.
+    """
+    if trade_type not in ['BUY', 'SELL']:
+        return {'success': False, 'message': 'Invalid trade type.'}
+
+    # Use try-except for robust quantity check (in case it's not a number)
+    try:
+        quantity = int(quantity)
+        if quantity <= 0:
+            return {'success': False, 'message': 'Quantity must be a positive integer.'}
+    except ValueError:
+        return {'success': False, 'message': 'Quantity must be a valid number.'}
+        
+    if not symbol or len(symbol) < 2:
+        return {'success': False, 'message': 'Invalid stock symbol.'}
+
+    # Simulate success
+    trade_time = datetime.utcnow().isoformat()
+    return {
+        'success': True,
+        'message': f'Trade executed successfully: {trade_type} {quantity} of {symbol}. (MOCK)',
+        'trade_details': {
+            'symbol': symbol,
+            'quantity': quantity,
+            'type': trade_type,
+            'timestamp': trade_time
+        }
+    }
+

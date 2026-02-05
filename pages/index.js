@@ -127,29 +127,118 @@ const AppStatus = () => (
     </>
 );
 
-const TradeExecutionForm = () => {
-    // This is purely a mockup, no state or logic needed yet
+const TradeExecutionForm = ({ onTradeExecuted }) => {
+    const [symbol, setSymbol] = useState('');
+    const [quantity, setQuantity] = useState('');
+    const [tradeType, setTradeType] = useState('');
+    const [message, setMessage] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     const formStyle = { display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' };
     const inputStyle = { padding: '8px', border: '1px solid #ccc', borderRadius: '4px' };
-    const buttonStyle = { padding: '10px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' };
+    const buttonStyle = { 
+        padding: '10px', 
+        backgroundColor: isSubmitting ? '#6c757d' : '#007bff', 
+        color: 'white', 
+        border: 'none', 
+        borderRadius: '4px', 
+        cursor: isSubmitting ? 'not-allowed' : 'pointer',
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setMessage('');
+        setIsSubmitting(true);
+        
+        try {
+            const res = await fetch('/api/trade', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    symbol: symbol.toUpperCase(),
+                    quantity: parseInt(quantity, 10),
+                    type: tradeType
+                }),
+            });
+
+            const result = await res.json();
+            
+            if (result.success) {
+                setMessage({ text: result.message, type: 'success' });
+                setSymbol('');
+                setQuantity('');
+                setTradeType('');
+                // Optional: Notify parent component (HomePage) to refresh portfolio status
+                if (onTradeExecuted) {
+                    onTradeExecuted();
+                }
+            } else {
+                setMessage({ text: result.message, type: 'error' });
+            }
+
+        } catch (err) {
+            console.error("Trade execution failed:", err);
+            setMessage({ text: `Failed to connect to trade API. ${err.message}`, type: 'error' });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const messageStyle = {
+        marginTop: '10px',
+        padding: '8px',
+        borderRadius: '4px',
+        color: 'white',
+        fontWeight: 'bold',
+        backgroundColor: message.type === 'success' ? 'green' : 'red',
+    };
 
     return (
         <>
-            <h2>Trade Execution (Mock)</h2>
-            <form style={formStyle} onSubmit={(e) => { e.preventDefault(); alert('Trade submitted (mockup)'); }}>
-                <input type="text" placeholder="Symbol (e.g., RELIANCE.NS)" style={inputStyle} required />
-                <input type="number" placeholder="Quantity" style={inputStyle} min="1" required />
-                <select style={inputStyle} required defaultValue="">
+            <h2>Trade Execution</h2>
+            <form style={formStyle} onSubmit={handleSubmit}>
+                <input 
+                    type="text" 
+                    placeholder="Symbol (e.g., RELIANCE.NS)" 
+                    style={inputStyle} 
+                    required 
+                    value={symbol}
+                    onChange={(e) => setSymbol(e.target.value)}
+                    disabled={isSubmitting}
+                />
+                <input 
+                    type="number" 
+                    placeholder="Quantity" 
+                    style={inputStyle} 
+                    min="1" 
+                    required 
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                    disabled={isSubmitting}
+                />
+                <select 
+                    style={inputStyle} 
+                    required 
+                    value={tradeType}
+                    onChange={(e) => setTradeType(e.target.value)}
+                    disabled={isSubmitting}
+                >
                     <option value="" disabled>Select Type</option>
-                    <option value="buy">BUY</option>
-                    <option value="sell">SELL</option>
+                    <option value="BUY">BUY</option>
+                    <option value="SELL">SELL</option>
                 </select>
-                <button type="submit" style={buttonStyle}>Place Order</button>
+                <button type="submit" style={buttonStyle} disabled={isSubmitting}>
+                    {isSubmitting ? 'Processing...' : 'Place Order'}
+                </button>
             </form>
-            <p style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '10px' }}>* Functional trading interface is the next phase.</p>
+            {message && <div style={messageStyle}>{message.text}</div>}
+            <p style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '10px' }}>* Mock backend API for trade execution.</p>
         </>
     );
 };
+
 // -----------------------------
 
 
@@ -159,31 +248,32 @@ const HomePage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    useEffect(() => {
-        const fetchPortfolioStatus = async () => {
-            try {
-                const res = await fetch('/api/status');
-                if (!res.ok) {
-                    // Check if response body is JSON for detailed error
-                    const errorText = await res.text();
-                    try {
-                        const errorJson = JSON.parse(errorText);
-                        throw new Error(`API failed: ${errorJson.message || 'Unknown error'}`);
-                    } catch {
-                        throw new Error(`HTTP error! status: ${res.status} - ${errorText.substring(0, 100)}...`);
-                    }
+    const fetchPortfolioStatus = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch('/api/status');
+            if (!res.ok) {
+                // Check if response body is JSON for detailed error
+                const errorText = await res.text();
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    throw new Error(`API failed: ${errorJson.message || 'Unknown error'}`);
+                } catch {
+                    throw new Error(`HTTP error! status: ${res.status} - ${errorText.substring(0, 100)}...`);
                 }
-                const data = await res.json();
-                setPortfolioStatus(data);
-                setError(null);
-            } catch (err) {
-                console.error("Failed to fetch portfolio status:", err);
-                setError(err.message);
-            } finally {
-                setLoading(false);
             }
-        };
+            const data = await res.json();
+            setPortfolioStatus(data);
+            setError(null);
+        } catch (err) {
+            console.error("Failed to fetch portfolio status:", err);
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
+    useEffect(() => {
         fetchPortfolioStatus();
     }, []);
 
@@ -226,7 +316,7 @@ const HomePage = () => {
                     
                     {/* Dashboard Card 2: Trade Execution Form (Phase 5 Implementation) */}
                     <div style={cardStyle}>
-                        <TradeExecutionForm />
+                        <TradeExecutionForm onTradeExecuted={fetchPortfolioStatus} />
                     </div>
 
                     {/* Dashboard Card 3: Holdings View */}
