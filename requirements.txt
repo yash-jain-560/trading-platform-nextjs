@@ -1,0 +1,3 @@
+# Required for Next.js Python API routes
+# No special requirements for this minimal example.
+# Example: requests

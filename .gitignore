@@ -1,0 +1,6 @@
+# .gitignore
+.next
+/node_modules
+/.vercel
+npm-debug.log
+.DS_Store
