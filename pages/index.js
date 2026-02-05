@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
+// --- Styling (kept from original) ---
 const containerStyle = {
   minHeight: '100vh',
   padding: '0 0.5rem',
@@ -57,18 +58,18 @@ const thTdStyle = {
 
 const getPLColor = (pl) => pl > 0 ? 'green' : pl < 0 ? 'red' : 'inherit';
 
-// --- NEW/UPDATED COMPONENTS ---
+// --- UPDATED COMPONENTS for New API Structure ---
 
-const PortfolioSummary = ({ status }) => {
-    if (!status) return <p>Loading portfolio summary...</p>;
+// status is now portfolio object: { cash, stocks, totalValue, ... }
+const PortfolioSummary = ({ portfolio }) => {
+    if (!portfolio) return <p>Loading portfolio summary...</p>;
     
     return (
         <>
             <h2>Account Summary</h2>
-            <p><strong>Cash Balance:</strong> ₹{status.cash_balance?.toFixed(2) || '0.00'}</p>
-            <p><strong>Market Value:</strong> ₹{status.total_market_value?.toFixed(2) || '0.00'}</p>
-            <p><strong>Total Value:</strong> ₹{status.total_portfolio_value?.toFixed(2) || '0.00'}</p>
-            <p style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '10px' }}>Last Updated: {status.last_updated_utc ? new Date(status.last_updated_utc).toLocaleTimeString() : 'N/A'}</p>
+            <p><strong>Cash Balance:</strong> ₹{portfolio.cash?.toFixed(2) || '0.00'}</p>
+            <p><strong>Total Value:</strong> ₹{portfolio.totalValue?.toFixed(2) || '0.00'}</p>
+            <p style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '10px' }}>* Portfolio value is calculated using current live price for TSLA and average price for other holdings (backend limitation).</p>
         </>
     );
 };
@@ -92,7 +93,7 @@ const HoldingsTable = ({ holdings }) => {
             </thead>
             <tbody>
                 {holdings.map((h, i) => (
-                    <tr key={i}>
+                    <tr key={h.ticker || i}>
                         <td style={thTdStyle}>{h.ticker}</td>
                         <td style={thTdStyle}>{h.quantity}</td>
                         <td style={thTdStyle}>₹{h.avg_price.toFixed(2)}</td>
@@ -108,7 +109,6 @@ const HoldingsTable = ({ holdings }) => {
     );
 };
 
-// Placeholder for future transactions/news, removing mock TransactionsList
 const PlaceholderCard = ({ title, message }) => (
     <>
         <h2>{title}</h2>
@@ -117,12 +117,10 @@ const PlaceholderCard = ({ title, message }) => (
 );
 
 
-// --- Phase 4 Components (Simplified) ---
-
 const AppStatus = () => (
     <>
         <h2>Platform Status</h2>
-        <p>System status: <span style={{ color: 'green', fontWeight: 'bold' }}>Operational</span></p>
+        <p>System status: <span style={{ color: 'green', fontWeight: 'bold' }}>Operational (Node.js/Yahoo-Finance2)</span></p>
         <p>Backend API: <a href="/api/status" target="_blank">/api/status (Live Data)</a></p>
     </>
 );
@@ -138,7 +136,7 @@ const TradeExecutionForm = ({ onTradeExecuted }) => {
     const inputStyle = { padding: '8px', border: '1px solid #ccc', borderRadius: '4px' };
     const buttonStyle = { 
         padding: '10px', 
-        backgroundColor: isSubmitting ? '#6c757d' : '#007bff', 
+        backgroundColor: isSubmitting ? '#6c757d' : tradeType === 'BUY' ? '#28a745' : tradeType === 'SELL' ? '#dc3545' : '#007bff', 
         color: 'white', 
         border: 'none', 
         borderRadius: '4px', 
@@ -147,7 +145,7 @@ const TradeExecutionForm = ({ onTradeExecuted }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setMessage('');
+        setMessage(null);
         setIsSubmitting(true);
         
         try {
@@ -165,17 +163,16 @@ const TradeExecutionForm = ({ onTradeExecuted }) => {
 
             const result = await res.json();
             
-            if (result.success) {
+            if (res.ok && result.success) {
                 setMessage({ text: result.message, type: 'success' });
                 setSymbol('');
                 setQuantity('');
                 setTradeType('');
-                // Optional: Notify parent component (HomePage) to refresh portfolio status
                 if (onTradeExecuted) {
                     onTradeExecuted();
                 }
             } else {
-                setMessage({ text: result.message, type: 'error' });
+                setMessage({ text: result.error || result.message || 'Trade failed.', type: 'error' });
             }
 
         } catch (err) {
@@ -192,7 +189,7 @@ const TradeExecutionForm = ({ onTradeExecuted }) => {
         borderRadius: '4px',
         color: 'white',
         fontWeight: 'bold',
-        backgroundColor: message.type === 'success' ? 'green' : 'red',
+        backgroundColor: message?.type === 'success' ? 'green' : 'red',
     };
 
     return (
@@ -201,7 +198,7 @@ const TradeExecutionForm = ({ onTradeExecuted }) => {
             <form style={formStyle} onSubmit={handleSubmit}>
                 <input 
                     type="text" 
-                    placeholder="Symbol (e.g., RELIANCE.NS)" 
+                    placeholder="Symbol (e.g., TSLA or AAPL)" 
                     style={inputStyle} 
                     required 
                     value={symbol}
@@ -229,22 +226,23 @@ const TradeExecutionForm = ({ onTradeExecuted }) => {
                     <option value="BUY">BUY</option>
                     <option value="SELL">SELL</option>
                 </select>
-                <button type="submit" style={buttonStyle} disabled={isSubmitting}>
-                    {isSubmitting ? 'Processing...' : 'Place Order'}
+                <button type="submit" style={buttonStyle} disabled={isSubmitting || !tradeType || !symbol || !quantity}>
+                    {isSubmitting ? 'Processing...' : `Place ${tradeType || 'Order'}`}
                 </button>
             </form>
             {message && <div style={messageStyle}>{message.text}</div>}
-            <p style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '10px' }}>* Mock backend API for trade execution.</p>
+            <p style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '10px' }}>* Trade execution uses live Yahoo Finance data.</p>
         </>
     );
 };
+
 
 // -----------------------------
 
 
 const HomePage = () => {
-    // New state to hold data from Python API
-    const [portfolioStatus, setPortfolioStatus] = useState(null);
+    // statusData holds the entire { message, livePrice, portfolio } object
+    const [statusData, setStatusData] = useState(null); 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -253,17 +251,11 @@ const HomePage = () => {
         try {
             const res = await fetch('/api/status');
             if (!res.ok) {
-                // Check if response body is JSON for detailed error
                 const errorText = await res.text();
-                try {
-                    const errorJson = JSON.parse(errorText);
-                    throw new Error(`API failed: ${errorJson.message || 'Unknown error'}`);
-                } catch {
-                    throw new Error(`HTTP error! status: ${res.status} - ${errorText.substring(0, 100)}...`);
-                }
+                throw new Error(`HTTP error! status: ${res.status}. Body: ${errorText.substring(0, 100)}...`);
             }
             const data = await res.json();
-            setPortfolioStatus(data);
+            setStatusData(data);
             setError(null);
         } catch (err) {
             console.error("Failed to fetch portfolio status:", err);
@@ -300,21 +292,44 @@ const HomePage = () => {
         );
     }
     
-    const holdings = portfolioStatus?.holdings || [];
+    // Data transformation for HoldingsTable
+    const holdings = statusData?.portfolio?.stocks ? 
+        Object.keys(statusData.portfolio.stocks).map(ticker => {
+            const stock = statusData.portfolio.stocks[ticker];
+            
+            // Try to use the live price if available (currently only TSLA is fetched in the backend)
+            // Fall back to averagePrice for all others to keep the table functional.
+            const livePrice = (statusData.livePrice && statusData.livePrice.symbol === ticker) ? statusData.livePrice.price : stock.averagePrice; 
+            
+            const currentValue = stock.quantity * livePrice;
+            const costBasis = stock.quantity * stock.averagePrice;
+            const plAbsolute = currentValue - costBasis;
+            const plPercent = costBasis === 0 ? 0 : (plAbsolute / costBasis) * 100;
+
+            return {
+                ticker,
+                quantity: stock.quantity,
+                avg_price: stock.averagePrice,
+                live_price: livePrice,
+                current_value: currentValue,
+                pl_absolute: plAbsolute,
+                pl_percent: plPercent,
+            };
+        }) : [];
 
     return (
         <div style={containerStyle}>
             <main style={mainStyle}>
-                <h1 style={headerStyle}>Trading Dashboard (Live Data)</h1>
+                <h1 style={headerStyle}>Trading Dashboard (Node.js/Live Data)</h1>
 
                 <div style={gridStyle}>
                     
                     {/* Dashboard Card 1: Portfolio Summary */}
                     <div style={cardStyle}>
-                        <PortfolioSummary status={portfolioStatus} />
+                        <PortfolioSummary portfolio={statusData.portfolio} />
                     </div>
                     
-                    {/* Dashboard Card 2: Trade Execution Form (Phase 5 Implementation) */}
+                    {/* Dashboard Card 2: Trade Execution Form */}
                     <div style={cardStyle}>
                         <TradeExecutionForm onTradeExecuted={fetchPortfolioStatus} />
                     </div>
@@ -327,7 +342,7 @@ const HomePage = () => {
                     
                     {/* Dashboard Card 4: Placeholder for Transactions/News */}
                     <div style={cardStyle}>
-                        <PlaceholderCard title="Market News" message="Placeholder for real-time news feed." />
+                        <PlaceholderCard title="Live Market Price" message={\`TSLA: \${statusData.livePrice?.price?.toFixed(2) || 'N/A'}\`} />
                     </div>
 
                     {/* Dashboard Card 5: App Status */}
